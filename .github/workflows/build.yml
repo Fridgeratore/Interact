@@ -1,0 +1,27 @@
+name: Build Interact.dll
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repo (with minhook submodule)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Configure (32-bit)
+        run: cmake -S . -B build -A Win32
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Upload built DLL
+        uses: actions/upload-artifact@v4
+        with:
+          name: Interact-dll
+          path: build/Release/Interact.dll
