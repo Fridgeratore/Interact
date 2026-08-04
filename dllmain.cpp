@@ -34,7 +34,7 @@ static uint32_t InteractNearest()
 	// your own fishing bobber) get a longer range since a cast bobber can
 	// easily land well outside 5 yards.
 	const float UNIT_RANGE = 5.0f;
-	const float OBJECT_RANGE = 30.0f;
+	const float OBJECT_RANGE = 40.0f;
 
 	while (currentObject != 0 && (currentObject & 1) == 0)
 	{
