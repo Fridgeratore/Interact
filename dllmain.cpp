@@ -1,4 +1,7 @@
 // dllmain.cpp : Defines the entry point for the DLL application.
+// Variant: never selects live units as an interact candidate (no
+// accidental autoattack / gossip trigger on nearby mobs). Only
+// dead-and-lootable/skinnable units and game objects are considered.
 
 #include "Game.h"
 #include "MinHook.h"
@@ -30,11 +33,8 @@ static uint32_t InteractNearest()
 
 	float bestDistance = 1000.0f;
 
-	// Units keep the original tight range. Game objects (this now includes
-	// your own fishing bobber) get a longer range since a cast bobber can
-	// easily land well outside 5 yards.
 	const float UNIT_RANGE = 5.0f;
-	const float OBJECT_RANGE = 40.0f;
+	const float OBJECT_RANGE = 30.0f;
 
 	while (currentObject != 0 && (currentObject & 1) == 0)
 	{
@@ -44,10 +44,6 @@ static uint32_t InteractNearest()
 
 		if (type == ObjectType::UNIT)
 		{
-			// Only units get filtered out for being "our own summon" (pets,
-			// totems, etc). Game objects - including the fishing bobber,
-			// which is also technically "summoned by us" - are no longer
-			// excluded by this check.
 			uint64_t summonedByGUID = *reinterpret_cast<uint64_t*>(*reinterpret_cast<uint32_t*>(pointer + 0x8) + 0x30);
 			uint32_t summonedBy = Game::GetObjectPointer(summonedByGUID);
 
@@ -78,23 +74,21 @@ static uint32_t InteractNearest()
 
 		if (distance <= maxRange && distance < bestDistance)
 		{
-			if (type == ObjectType::UNIT)
+			if (type == ObjectType::GAMEOBJECT)
 			{
+				bestDistance = distance;
+				candidate = currentObject;
+			}
+			else if (type == ObjectType::UNIT)
+			{
+				// Only dead, lootable or skinnable units qualify - live
+				// units (friendly or hostile) are never selected, so the
+				// key never triggers gossip/vendor windows or autoattack.
 				if (Game::GetUnitHealth(currentObject) == 0 && (Game::IsUnitLootable(currentObject) || Game::IsUnitSkinnable(currentObject)))
 				{
 					bestDistance = distance;
 					candidate = currentObject;
 				}
-				else if (Game::GetUnitHealth(currentObject) > 0)
-				{
-					bestDistance = distance;
-					candidate = currentObject;
-				}
-			}
-			else if (type == ObjectType::GAMEOBJECT)
-			{
-				bestDistance = distance;
-				candidate = currentObject;
 			}
 		}
 
